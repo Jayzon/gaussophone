@@ -2,7 +2,7 @@
 
 A prime number detector that turns math into sound and motion. Every odd integer gets tested using a triangular number (Gaussian) decomposition — primes and composites produce distinct audio signatures, and a fleet of emoji turtles choreograph the results in real time.
 
-**[Live demo →](https://jayzon.github.io/gaussophone/gaussophone.html)**
+**[Live demo →](https://jayzon.github.io/gaussophone)**
 
 ---
 
@@ -26,10 +26,10 @@ rightDiff = rightSum − N
 leftPos   = next triangular index ≥ rightDiff
 leftSum   = triangular(leftPos)
 fz        = rightDiff − leftSum          ← zero when magic is found
-factor    = magic + rightPos + leftPos + 1
+diff      = (rightPos + magic) − leftPos ← candidate factor
 ```
 
-`fz == 0` is the detection condition. `factor == N` means prime.
+`fz == 0` is the detection condition. If `diff > 1` and `N % diff == 0`, the number is composite and the factor pair is `(min(diff, N/diff), max(diff, N/diff))`. If no valid diff is found, the search repeats anchored at `2N` (catching the p² cases 9, 25, 49, 121 which the N-anchored pass cannot resolve geometrically). If neither pass yields a factor, N is prime. This is original research by Jason Ausborn / Nerd Toolbox Research — see the companion paper on [TechRxiv](https://www.techrxiv.org) (Ausborn's Algorithm).
 
 ---
 
@@ -85,7 +85,7 @@ Requires Web Audio API support. Works in Chrome, Firefox, Safari, and Edge (all 
 ## Project
 
 Built by **Jason Ausborn** / [Nerd Toolbox Research](https://nerdtoolbox.com)  
-Part of past independent research into triangular number factorization and quantum-adjacent number theory.
+Part of ongoing independent research into triangular number factorization and quantum-adjacent number theory.
 
 ---
 

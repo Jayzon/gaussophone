@@ -1470,39 +1470,63 @@ function setLive(on) {
   liveLbl.style.color = on ? '#17a872' : '#6b778f';
 }
 
+
 function step() {
   if (!running) return;
   if (N >= 100001) { N = 3; primes = 0; comps = 0; }
+
+  let factor = 0;
+  let hitMagic = 0;
+
+  // Pass 1: anchor on N
+  const rightPos = find_next_gauss(N);
   for (let magic = 1; magic <= 1000000; magic++) {
-    const rightPos = find_next_gauss(N);
     const rightSum = gauss_sum(rightPos + magic);
     const rightDiff = rightSum - N;
     const leftPos = find_next_gauss(rightDiff);
-    const leftSum = gauss_sum(leftPos);
-    const fz = rightDiff - leftSum;
-    let factor = (magic + rightPos) + leftPos + 1;
-    if (factor % 2 === 0 && factor !== N) { let f = factor; while (f % 2 === 0 && f !== 0) f = Math.floor(f / 2); factor = f; }
+    const fz = rightDiff - gauss_sum(leftPos);
     if (fz === 0) {
-      const pct = magic / N * 100;
-      const isPr = factor === N;
-      updateStats(N, magic, pct);
-      moveTurtles(magic, pct, isPr);
-
-      if (audioOn) {
-        if (isPr) { playPrime(N, magic, pct); animateViz(true); }
-        else       { playComposite(N, factor, magic, pct); animateViz(false); }
-      }
-
-      if (!isPr) {
-        comps++;
-        addLog(N, `${factor} &times; ${Math.floor(N / factor)} &nbsp; magic ${magic}`, pct, 'lf');
-      } else {
-        primes++;
-        addLog(N, `prime &nbsp; magic ${magic}`, pct, 'lp');
-      }
-      break;
+      const diff = (rightPos + magic) - leftPos;
+      if (diff > 1 && N % diff === 0) { factor = diff; hitMagic = magic; break; }
+      if (diff <= 1) break; // trivial terminal — no more useful hits ahead
     }
   }
+
+  // Pass 2: anchor on 2N — catches p² blind spots (9, 25, 49, 121)
+  if (factor === 0) {
+    const rp2 = find_next_gauss(2 * N);
+    for (let magic = 1; magic <= 1000000; magic++) {
+      const rightSum = gauss_sum(rp2 + magic);
+      const rightDiff = rightSum - 2 * N;
+      const leftPos = find_next_gauss(rightDiff);
+      const fz = rightDiff - gauss_sum(leftPos);
+      if (fz === 0) {
+        const diff = (rp2 + magic) - leftPos;
+        if (diff > 1 && N % diff === 0) { factor = diff; hitMagic = magic; break; }
+        if (diff <= 1) break;
+      }
+    }
+  }
+
+  const isPr = factor === 0;
+  const f = isPr ? N : Math.min(factor, Math.floor(N / factor));
+  const pct = hitMagic / N * 100;
+  updateStats(N, hitMagic || 1, pct);
+  moveTurtles(hitMagic || 1, pct, isPr);
+
+  if (audioOn) {
+    if (isPr) { playPrime(N, hitMagic || 1, pct); animateViz(true); }
+    else       { playComposite(N, f, hitMagic, pct); animateViz(false); }
+  }
+
+  if (!isPr) {
+    comps++;
+    addLog(N, `${f} &times; ${Math.floor(N / f)} &nbsp; magic ${hitMagic}`, pct, 'lf');
+  } else {
+    primes++;
+    addLog(N, `prime &nbsp; magic ${hitMagic || 1}`, pct, 'lp');
+  }
+
   N += 2;
   stepTimer = setTimeout(step, getDelay());
 }
