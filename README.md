@@ -29,7 +29,7 @@ fz        = rightDiff − leftSum          ← zero when magic is found
 diff      = (rightPos + magic) − leftPos ← candidate factor
 ```
 
-`fz == 0` is the detection condition. If `diff > 1` and `N % diff == 0`, the number is composite and the factor pair is `(min(diff, N/diff), max(diff, N/diff))`. If no valid diff is found, the search repeats anchored at `2N` (catching the p² cases 9, 25, 49, 121 which the N-anchored pass cannot resolve geometrically). If neither pass yields a factor, N is prime. This is original research by Jason Ausborn / Nerd Toolbox Research — see the companion paper on [TechRxiv](https://www.techrxiv.org) (Ausborn's Algorithm).
+`fz == 0` is the detection condition. If `diff > 1` and `N % diff == 0`, the number is composite and the factor pair is `(min(diff, N/diff), max(diff, N/diff))`. If no valid diff is found, the search repeats anchored at `2N` (catching the p² cases 9, 25, 49, 121 which the N-anchored pass cannot resolve geometrically). If neither pass yields a factor, N is prime. This is built upon original research by Jason Ausborn / Nerd Toolbox Research into triangular factorization to look at patterns for encoding quantum circuitry based on N.
 
 ---
 
