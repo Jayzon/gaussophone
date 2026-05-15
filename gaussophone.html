@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gaussophone</title>
+<style>
+  :root {
+    --bg: #f0f2f7;
+    --bg2: #ffffff;
+    --bg3: #e4e8f2;
+    --bg4: #eaecf5;
+    --border: #c8cfe0;
+    --border2: #a0aac0;
+    --text: #1a1f2e;
+    --text2: #3a4260;
+    --text3: #6b778f;
+    --green: #17a872;
+    --red: #d94f4f;
+    --blue: #2e7de0;
+    --amber: #c98a10;
+    --purple: #7c4fd4;
+    --cyan: #0bbcd4;
+    --mono: 'Courier New', monospace;
+    --sans: system-ui, -apple-system, sans-serif;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 24px;
+  }
+  h1 { font-size: 16px; font-weight: 500; color: var(--text); }
+  .subtitle { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .top-bar { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+  .btn-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; font-size: 13px; font-family: var(--sans);
+    background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  button:hover { background: var(--bg4); border-color: var(--border2); }
+  button:active { transform: scale(0.97); }
+  button svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .audio-toggle {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 14px; font-size: 13px; font-family: var(--sans);
+    background: var(--bg3); color: var(--text2);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; transition: all 0.2s; user-select: none;
+  }
+  .audio-toggle:hover { background: var(--bg4); border-color: var(--border2); }
+  .audio-toggle.on { color: var(--green); border-color: #17a87255; background: #17a87215; }
+  .audio-toggle .icon { font-size: 14px; transition: transform 0.2s; }
+  .audio-toggle.on .icon { transform: scale(1.15); }
+  .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .stat .lbl { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-bottom: 5px; }
+  .stat .val { font-size: 20px; font-weight: 500; font-family: var(--mono); color: var(--text); }
+  .stat.s-prime .val { color: var(--red); }
+  .stat.s-comp .val { color: var(--green); }
+  .ctrl-row { display: flex; align-items: center; gap: 20px; margin-bottom: 14px; flex-wrap: wrap; }
+  .ctrl { display: flex; align-items: center; gap: 8px; }
+  .ctrl label { font-size: 12px; color: var(--text2); }
+  .ctrl input[type=range] { -webkit-appearance: none; width: 90px; height: 4px; background: var(--border); border-radius: 2px; outline: none; cursor: pointer; }
+  .ctrl input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--blue); cursor: pointer; border: none; }
+  .ctrl input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--blue); cursor: pointer; border: none; }
+  .ctrl .val { font-size: 12px; font-family: var(--mono); color: var(--text); min-width: 32px; }
+  .ctrl input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; }
+  #stage { position: relative; width: 100%; height: 320px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; }
+  .turtle-el { position: absolute; font-size: 32px; pointer-events: none; user-select: none; will-change: left, top, transform; line-height: 1; transition: font-size 0.12s; }
+  .tdot { position: absolute; width: 4px; height: 4px; border-radius: 50%; pointer-events: none; }
+  #log-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg2); margin-bottom: 14px; }
+  #log-head { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; border-bottom: 1px solid var(--border); background: var(--bg3); }
+  #log-head .htext { font-size: 12px; font-weight: 500; color: var(--text2); letter-spacing: 0.04em; }
+  .live-row { display: flex; align-items: center; gap: 6px; }
+  #live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); }
+  #live-lbl { font-size: 12px; color: var(--text3); }
+  #log { height: 160px; overflow-y: auto; font-family: var(--mono); font-size: 12px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  #log::-webkit-scrollbar { width: 5px; }
+  #log::-webkit-scrollbar-track { background: transparent; }
+  #log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .ll { display: grid; grid-template-columns: 70px 1fr 90px; align-items: baseline; padding: 4px 14px; line-height: 1.7; border-bottom: 1px solid var(--border); gap: 8px; }
+  .ll:last-child { border-bottom: none; }
+  .ll .lN { color: var(--text3); font-size: 11px; }
+  .ll .lbody { color: var(--text2); }
+  .ll .lpct { text-align: right; color: var(--text3); font-size: 11px; }
+  .ll.lp .lN { color: var(--red); }
+  .ll.lp .lbody { color: #b53333; }
+  .ll.lf .lN { color: var(--green); }
+  .ll.lf .lbody { color: var(--text); }
+
+  /* audio viz bar */
+  #audio-viz { display: flex; align-items: flex-end; gap: 2px; height: 28px; padding: 0 2px; opacity: 0; transition: opacity 0.4s; }
+  #audio-viz.active { opacity: 1; }
+  #audio-viz span {
+    display: block; width: 3px; background: var(--green);
+    border-radius: 2px 2px 0 0; transition: height 0.08s ease-out;
+    min-height: 2px;
+  }
+
+  /* ─── SOUND LAB PANEL ──────────────────────────────────── */
+  #sound-lab {
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--bg4);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  #sound-lab-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  #sound-lab-header:hover { background: var(--bg4); }
+  .lab-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; font-weight: 600; color: var(--text2);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .lab-title .lab-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--amber); box-shadow: 0 0 6px var(--amber);
+    transition: background 0.3s;
+  }
+  .lab-title .lab-dot.active { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .lab-chevron { font-size: 11px; color: var(--text3); transition: transform 0.2s; }
+  .lab-chevron.open { transform: rotate(180deg); }
+  #sound-lab-body { display: none; padding: 0; }
+  #sound-lab-body.open { display: block; }
+
+  .lab-sections {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--border);
+  }
+  .lab-section {
+    padding: 14px 16px;
+    border-right: 1px solid var(--border);
+  }
+  .lab-section:last-child { border-right: none; }
+
+  /* ─── Sound Lab responsive breakpoints ─── */
+  @media (max-width: 900px) {
+    .lab-sections {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .lab-section:nth-child(2) { border-right: none; }
+    .lab-section:nth-child(3) { border-top: 1px solid var(--border); }
+    .lab-section:nth-child(4) { border-top: 1px solid var(--border); border-right: none; }
+  }
+  @media (max-width: 520px) {
+    .lab-sections {
+      grid-template-columns: 1fr;
+    }
+    .lab-section { border-right: none; border-top: 1px solid var(--border); }
+    .lab-section:first-child { border-top: none; }
+    .lab-bottom { flex-direction: column; }
+    .lab-bottom-section { flex: none !important; width: 100%; }
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .stats-grid .stat:nth-child(4),
+    .stats-grid .stat:nth-child(5) { grid-column: span 1; }
+  }
+  @media (max-width: 400px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    body { padding: 14px; }
+  }
+  @media (max-width: 520px) {
+    .top-bar { flex-direction: column; align-items: flex-start; }
+    .btn-row { width: 100%; }
+    .audio-toggle { order: 99; margin-left: 0; }
+    #audio-viz { order: 98; }
+    button { padding: 7px 12px; font-size: 12px; }
+    .ctrl-row { gap: 12px; }
+  }
+  .lab-section-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .lab-section-title .sec-accent {
+    width: 20px; height: 2px; border-radius: 1px;
+  }
+  .sec-accent.prime { background: var(--red); }
+  .sec-accent.comp  { background: var(--green); }
+  .sec-accent.drone { background: var(--purple); }
+  .sec-accent.master { background: var(--blue); }
+
+  .lab-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 9px; gap: 8px;
+  }
+  .lab-row:last-child { margin-bottom: 0; }
+  .lab-lbl { font-size: 11px; color: var(--text2); white-space: nowrap; flex-shrink: 0; }
+  .lab-lbl.muted { color: var(--text3); }
+  .lab-val { font-size: 11px; font-family: var(--mono); color: var(--cyan); min-width: 36px; text-align: right; }
+  .lab-val.red { color: var(--red); }
+  .lab-val.green { color: var(--green); }
+  .lab-val.purple { color: var(--purple); }
+
+  input[type=range].lab-slider {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    background: var(--border);
+  }
+  input[type=range].lab-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    cursor: pointer; border: none;
+  }
+  input[type=range].lab-slider.blue-thumb::-webkit-slider-thumb { background: var(--blue); }
+  input[type=range].lab-slider.red-thumb::-webkit-slider-thumb { background: var(--red); }
+  input[type=range].lab-slider.green-thumb::-webkit-slider-thumb { background: var(--green); }
+  input[type=range].lab-slider.purple-thumb::-webkit-slider-thumb { background: var(--purple); }
+  input[type=range].lab-slider.amber-thumb::-webkit-slider-thumb { background: var(--amber); }
+  input[type=range].lab-slider::-moz-range-thumb {
+    width: 13px; height: 13px; border-radius: 50%; border: none;
+  }
+
+  .toggle-pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 20px; padding: 2px; gap: 0;
+    cursor: pointer;
+  }
+  .toggle-pill span {
+    padding: 3px 10px; font-size: 11px; border-radius: 16px;
+    color: var(--text3); transition: all 0.18s;
+  }
+  .toggle-pill.on span:last-child,
+  .toggle-pill:not(.on) span:first-child {
+    display: none;
+  }
+  /* simpler: just a checkbox-styled button */
+  .lab-toggle {
+    width: 32px; height: 17px;
+    background: var(--border); border-radius: 9px;
+    position: relative; cursor: pointer;
+    border: none; outline: none; flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .lab-toggle::after {
+    content: ''; position: absolute;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--text3); top: 3px; left: 3px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .lab-toggle.on { background: #17a87240; border: none; }
+  .lab-toggle.on::after { transform: translateX(15px); background: var(--green); }
+  .lab-toggle.on-red { background: #d94f4f30; }
+  .lab-toggle.on-red::after { transform: translateX(15px); background: var(--red); }
+  .lab-toggle.on-purple { background: #7c4fd430; }
+  .lab-toggle.on-purple::after { transform: translateX(15px); background: var(--purple); }
+
+  .select-ctrl {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); font-size: 11px; font-family: var(--mono);
+    padding: 2px 6px; border-radius: 4px; cursor: pointer;
+    outline: none;
+  }
+  .select-ctrl:focus { border-color: var(--blue); }
+
+  .lab-divider {
+    height: 1px; background: var(--border); margin: 10px 0;
+  }
+
+  /* oscilloscope mini canvas */
+  #scope-canvas {
+    width: 100%; height: 38px;
+    border-radius: 4px;
+    background: var(--bg);
+    margin-top: 8px;
+    display: block;
+  }
+
+  /* preset buttons */
+  .preset-row {
+    display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px;
+  }
+  .preset-btn {
+    padding: 3px 9px; font-size: 10px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 3px; color: var(--text3);
+    cursor: pointer; transition: all 0.15s;
+    font-family: var(--mono);
+  }
+  .preset-btn:hover { border-color: var(--blue); color: var(--text); }
+
+  /* Bottom row of lab: oscilloscope + presets spanning full width */
+  .lab-bottom {
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex; gap: 16px; align-items: flex-start;
+  }
+  .lab-bottom-section { flex: 1; }
+  .lab-bottom-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text3); margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <h1>Gaussophone</h1>
+    <div class="subtitle">turtle position driven by magic, N, and turtle%</div>
+  </div>
+  <div class="btn-row">
+    <button id="btn-start"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>start</button>
+    <button id="btn-pause"><svg viewBox="0 0 24 24"><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>pause</button>
+    <button id="btn-reset"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>reset</button>
+    <div id="audio-viz">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="audio-toggle" id="audio-btn"><span class="icon">🔇</span><span id="audio-lbl">audio off</span></div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat"><div class="lbl">N</div><div class="val" id="sN">—</div></div>
+  <div class="stat"><div class="lbl">magic</div><div class="val" id="sMagic">—</div></div>
+  <div class="stat"><div class="lbl">turtle %</div><div class="val" id="sPct">—</div></div>
+  <div class="stat s-prime"><div class="lbl">primes</div><div class="val" id="sPrimes">0</div></div>
+  <div class="stat s-comp"><div class="lbl">composites</div><div class="val" id="sComps">0</div></div>
+</div>
+
+<div class="ctrl-row">
+  <div class="ctrl"><label>speed</label><input type="range" id="speed" min="1" max="10" value="5" step="1"><span class="val" id="speedOut">5</span></div>
+  <div class="ctrl"><label>turtles</label><input type="range" id="turtle-count" min="1" max="12" value="5" step="1"><span class="val" id="turtleCountOut">5</span></div>
+  <div class="ctrl"><label>trails</label><input type="checkbox" id="trails" checked></div>
+  <div class="ctrl"><label>panic on prime</label><input type="checkbox" id="panic" checked></div>
+</div>
+
+<!-- ─── SOUND LAB ─────────────────────────────────────────────── -->
+<div id="sound-lab">
+  <div id="sound-lab-header">
+    <div class="lab-title">
+      <div class="lab-dot" id="lab-dot"></div>
+      sound lab
+    </div>
+    <div class="lab-chevron" id="lab-chevron">▼</div>
+  </div>
+  <div id="sound-lab-body">
+    <div class="lab-sections">
+
+      <!-- MASTER -->
+      <div class="lab-section">
+        <div class="lab-section-title"><div class="sec-accent master"></div>master</div>
+
+        <div class="lab-row">
+          <span class="lab-lbl">volume</span>
+          <input type="range" class="lab-slider blue-thumb" id="sl-master-vol" min="0" max="100" value="72" step="1">
+          <span class="lab-val" id="vl-master-vol">72</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">reverb wet</span>
+          <input type="range" class="lab-slider blue-thumb" id="sl-reverb-wet" min="0" max="100" value="22" step="1">
+          <span class="lab-val" id="vl-reverb-wet">22</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">tune root (Hz)</span>
+          <input type="range" class="lab-slider blue-thumb" id="sl-root-freq" min="80" max="220" value="110" step="1">
+          <span class="lab-val" id="vl-root-freq">110</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">scale</span>
+          <select class="select-ctrl" id="sel-scale">
+            <option value="penta">pentatonic</option>
+            <option value="whole">whole-tone</option>
+            <option value="chrom">chromatic</option>
+            <option value="harm">harmonic min</option>
+            <option value="just">just intv</option>
+          </select>
+        </div>
+        <div class="lab-divider"></div>
+        <div class="lab-row">
+          <span class="lab-lbl">primes mute</span>
+          <button class="lab-toggle on-red" id="tog-prime" title="toggle prime sounds"></button>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">composites mute</span>
+          <button class="lab-toggle on" id="tog-comp" title="toggle composite sounds"></button>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">drone mute</span>
+          <button class="lab-toggle on-purple" id="tog-drone" title="toggle drone"></button>
+        </div>
+      </div>
+
+      <!-- PRIME SOUND (FM) -->
+      <div class="lab-section">
+        <div class="lab-section-title"><div class="sec-accent prime"></div>prime / fm synth</div>
+
+        <div class="lab-row">
+          <span class="lab-lbl">carrier base</span>
+          <input type="range" class="lab-slider red-thumb" id="sl-prime-base" min="60" max="400" value="138" step="1">
+          <span class="lab-val red" id="vl-prime-base">138</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">mod index</span>
+          <input type="range" class="lab-slider red-thumb" id="sl-mod-idx" min="0" max="12" value="4.5" step="0.1">
+          <span class="lab-val red" id="vl-mod-idx">4.5</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">mod ratio chaos</span>
+          <input type="range" class="lab-slider red-thumb" id="sl-mod-chaos" min="0" max="2" value="0.91" step="0.01">
+          <span class="lab-val red" id="vl-mod-chaos">0.91</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">lfo rate</span>
+          <input type="range" class="lab-slider red-thumb" id="sl-lfo-rate" min="0.5" max="30" value="7" step="0.5">
+          <span class="lab-val red" id="vl-lfo-rate">7</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">lfo depth</span>
+          <input type="range" class="lab-slider red-thumb" id="sl-lfo-depth" min="0" max="100" value="18" step="1">
+          <span class="lab-val red" id="vl-lfo-depth">18</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">noise burst</span>
+          <input type="range" class="lab-slider red-thumb" id="sl-noise-level" min="0" max="100" value="40" step="1">
+          <span class="lab-val red" id="vl-noise-level">40</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">dissonance</span>
+          <input type="range" class="lab-slider red-thumb" id="sl-dissonance" min="0" max="100" value="22" step="1">
+          <span class="lab-val red" id="vl-dissonance">22</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">decay</span>
+          <input type="range" class="lab-slider red-thumb" id="sl-prime-decay" min="0.2" max="3" value="0.85" step="0.05">
+          <span class="lab-val red" id="vl-prime-decay">0.85</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">reverb send</span>
+          <input type="range" class="lab-slider red-thumb" id="sl-prime-rev" min="0" max="100" value="50" step="1">
+          <span class="lab-val red" id="vl-prime-rev">50</span>
+        </div>
+      </div>
+
+      <!-- COMPOSITE SOUND (additive) -->
+      <div class="lab-section">
+        <div class="lab-section-title"><div class="sec-accent comp"></div>composite / additive</div>
+
+        <div class="lab-row">
+          <span class="lab-lbl">root base</span>
+          <input type="range" class="lab-slider green-thumb" id="sl-comp-base" min="60" max="440" value="110" step="1">
+          <span class="lab-val green" id="vl-comp-base">110</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">max partials</span>
+          <input type="range" class="lab-slider green-thumb" id="sl-partials" min="1" max="12" value="6" step="1">
+          <span class="lab-val green" id="vl-partials">6</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">brightness</span>
+          <input type="range" class="lab-slider green-thumb" id="sl-brightness" min="0" max="100" value="55" step="1">
+          <span class="lab-val green" id="vl-brightness">55</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">brightness→magic</span>
+          <input type="range" class="lab-slider green-thumb" id="sl-brt-magic" min="0" max="100" value="100" step="1">
+          <span class="lab-val green" id="vl-brt-magic">100</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">harmonic drift</span>
+          <input type="range" class="lab-slider green-thumb" id="sl-harm-drift" min="0" max="100" value="8" step="1">
+          <span class="lab-val green" id="vl-harm-drift">8</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">pan spread</span>
+          <input type="range" class="lab-slider green-thumb" id="sl-pan-spread" min="0" max="100" value="30" step="1">
+          <span class="lab-val green" id="vl-pan-spread">30</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">attack</span>
+          <input type="range" class="lab-slider green-thumb" id="sl-comp-atk" min="1" max="100" value="8" step="1">
+          <span class="lab-val green" id="vl-comp-atk">8</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">decay</span>
+          <input type="range" class="lab-slider green-thumb" id="sl-comp-decay" min="0.2" max="3" value="0.55" step="0.05">
+          <span class="lab-val green" id="vl-comp-decay">0.55</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">reverb send</span>
+          <input type="range" class="lab-slider green-thumb" id="sl-comp-rev" min="0" max="100" value="50" step="1">
+          <span class="lab-val green" id="vl-comp-rev">50</span>
+        </div>
+      </div>
+
+      <!-- DRONE -->
+      <div class="lab-section">
+        <div class="lab-section-title"><div class="sec-accent drone"></div>drone / spatial</div>
+
+        <div class="lab-row">
+          <span class="lab-lbl">volume</span>
+          <input type="range" class="lab-slider purple-thumb" id="sl-drone-vol" min="0" max="100" value="85" step="1">
+          <span class="lab-val purple" id="vl-drone-vol">85</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">base freq</span>
+          <input type="range" class="lab-slider purple-thumb" id="sl-drone-base" min="20" max="200" value="55" step="1">
+          <span class="lab-val purple" id="vl-drone-base">55</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">pitch range</span>
+          <input type="range" class="lab-slider purple-thumb" id="sl-drone-range" min="10" max="300" value="132" step="1">
+          <span class="lab-val purple" id="vl-drone-range">132</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">detune</span>
+          <input type="range" class="lab-slider purple-thumb" id="sl-drone-detune" min="0" max="50" value="13" step="0.5">
+          <span class="lab-val purple" id="vl-drone-detune">13</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">stereo width</span>
+          <input type="range" class="lab-slider purple-thumb" id="sl-drone-width" min="0" max="100" value="55" step="1">
+          <span class="lab-val purple" id="vl-drone-width">55</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">filter floor</span>
+          <input type="range" class="lab-slider purple-thumb" id="sl-filter-floor" min="80" max="800" value="180" step="10">
+          <span class="lab-val purple" id="vl-filter-floor">180</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">filter ceiling</span>
+          <input type="range" class="lab-slider purple-thumb" id="sl-filter-ceil" min="200" max="4000" value="1000" step="10">
+          <span class="lab-val purple" id="vl-filter-ceil">1000</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">filter Q</span>
+          <input type="range" class="lab-slider purple-thumb" id="sl-filter-q" min="0.1" max="12" value="1.4" step="0.1">
+          <span class="lab-val purple" id="vl-filter-q">1.4</span>
+        </div>
+        <div class="lab-row">
+          <span class="lab-lbl">waveform</span>
+          <select class="select-ctrl" id="sel-drone-wave">
+            <option value="sawtooth">sawtooth</option>
+            <option value="sine">sine</option>
+            <option value="square">square</option>
+            <option value="triangle">triangle</option>
+          </select>
+        </div>
+      </div>
+
+    </div><!-- lab-sections -->
+
+    <!-- bottom row: scope + presets -->
+    <div class="lab-bottom">
+      <div class="lab-bottom-section" style="flex:0 0 220px;">
+        <div class="lab-bottom-title">oscilloscope</div>
+        <canvas id="scope-canvas" height="38"></canvas>
+      </div>
+      <div class="lab-bottom-section">
+        <div class="lab-bottom-title">presets</div>
+        <div class="preset-row">
+          <button class="preset-btn" data-preset="default">default</button>
+          <button class="preset-btn" data-preset="alien">alien radio</button>
+          <button class="preset-btn" data-preset="glass">glass bells</button>
+          <button class="preset-btn" data-preset="deep">deep space</button>
+          <button class="preset-btn" data-preset="chaos">chaos engine</button>
+          <button class="preset-btn" data-preset="minimal">minimal</button>
+          <button class="preset-btn" data-preset="ritual">ritual drone</button>
+          <button class="preset-btn" data-preset="jazz">jazz voicing</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- sound-lab-body -->
+</div><!-- sound-lab -->
+
+<div id="stage">
+</div>
+
+<div id="log-wrap">
+  <div id="log-head">
+    <span class="htext">output log</span>
+    <div class="live-row"><div id="live-dot"></div><span id="live-lbl">idle</span></div>
+  </div>
+  <div id="log"></div>
+</div>
+
+<script>
+// ─── Math core ───────────────────────────────────────────────────────────────
+const gauss_sum = n => (n * (n + 1)) / 2;
+const find_next_gauss = t => {
+  if (t <= 0) return 0;
+  const d = 8 * t + 1;
+  let r = Math.floor(Math.sqrt(d));
+  while (r * r > d) r--;
+  while ((r + 1) * (r + 1) <= d) r++;
+  let nc = Math.floor((r - 1) / 2);
+  return Math.floor((nc * (nc + 1)) / 2) >= t ? nc : nc + 1;
+};
+
+// ─── Scale tables ─────────────────────────────────────────────────────────
+const SCALES = {
+  penta: [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4, 5/2, 3, 10/3],
+  whole: [1, 9/8, 5/4, 45/32, 3/2, 15/8, 2, 9/4, 5/2, 45/16],
+  chrom: [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/3, 16/9, 15/8, 2, 9/4, 5/2],
+  harm:  [1, 9/8, 6/5, 4/3, 3/2, 8/5, 15/8, 2, 9/4, 12/5],
+  just:  [1, 9/8, 5/4, 4/3, 3/2, 5/3, 15/8, 2, 9/4, 5/2],
+};
+
+// ─── Audio state / params ─────────────────────────────────────────────────
+let audioCtx = null;
+let masterGain = null;
+let droneL = null, droneR = null, droneFilter = null, droneGain = null;
+let panL = null, panR = null;
+let reverbNode = null, reverbGain = null;
+let audioOn = false;
+let droneRunning = false;
+let analyserNode = null;
+let analyserBuf = null;
+
+// Live-editable params — read by playPrime, playComposite, updateDrone
+const P = {
+  masterVol: 0.72,
+  reverbWet: 0.22,
+  rootFreq: 110,
+  scale: 'penta',
+  // toggles
+  primesOn: true,
+  compsOn: true,
+  droneOn: true,
+  // prime / fm
+  primeBase: 138,
+  modIdx: 4.5,
+  modChaos: 0.91,
+  lfoRate: 7,
+  lfoDepth: 0.018,
+  noiseLevel: 0.04,
+  dissonance: 0.022,
+  primeDecay: 0.85,
+  primeRevSend: 0.5,
+  // composite / additive
+  compBase: 110,
+  maxPartials: 6,
+  brightness: 0.55,
+  brightnessToMagic: 1.0,
+  harmDrift: 0.08,
+  panSpread: 0.30,
+  compAtk: 0.008,
+  compDecay: 0.55,
+  compRevSend: 0.5,
+  // drone
+  droneVol: 0.085,
+  droneBase: 55,
+  droneRange: 132,
+  droneDetune: 0.013,
+  droneWidth: 0.55,
+  filterFloor: 180,
+  filterCeil: 1000,
+  filterQ: 1.4,
+  droneWave: 'sawtooth',
+};
+
+// ─── Reverb builder ─────────────────────────────────────────────────────────
+function buildReverb(ctx) {
+  const len = ctx.sampleRate * 1.8;
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < len; i++) {
+      const t = i / ctx.sampleRate;
+      const decay = Math.exp(-t * 3.2);
+      const er = (i < ctx.sampleRate * 0.04) ? 1.4 : 1.0;
+      d[i] = (Math.random() * 2 - 1) * decay * er;
+    }
+  }
+  const conv = ctx.createConvolver();
+  conv.buffer = buf;
+  return conv;
+}
+
+// ─── Init audio ──────────────────────────────────────────────────────────────
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  masterGain = audioCtx.createGain();
+  masterGain.gain.setValueAtTime(P.masterVol, audioCtx.currentTime);
+
+  analyserNode = audioCtx.createAnalyser();
+  analyserNode.fftSize = 256;
+  analyserBuf = new Uint8Array(analyserNode.frequencyBinCount);
+  masterGain.connect(analyserNode);
+  analyserNode.connect(audioCtx.destination);
+
+  reverbNode = buildReverb(audioCtx);
+  reverbGain = audioCtx.createGain();
+  reverbGain.gain.setValueAtTime(P.reverbWet, audioCtx.currentTime);
+  reverbNode.connect(reverbGain);
+  reverbGain.connect(masterGain);
+
+  // Drone
+  droneFilter = audioCtx.createBiquadFilter();
+  droneFilter.type = 'lowpass';
+  droneFilter.frequency.setValueAtTime(320, audioCtx.currentTime);
+  droneFilter.Q.setValueAtTime(P.filterQ, audioCtx.currentTime);
+
+  droneGain = audioCtx.createGain();
+  droneGain.gain.setValueAtTime(0, audioCtx.currentTime);
+  droneGain.connect(droneFilter);
+  droneFilter.connect(masterGain);
+
+  droneL = audioCtx.createOscillator();
+  droneL.type = P.droneWave;
+  droneL.frequency.setValueAtTime(P.droneBase, audioCtx.currentTime);
+  panL = audioCtx.createStereoPanner();
+  panL.pan.setValueAtTime(-P.droneWidth, audioCtx.currentTime);
+  droneL.connect(panL);
+  panL.connect(droneGain);
+  droneL.start();
+
+  droneR = audioCtx.createOscillator();
+  droneR.type = P.droneWave;
+  droneR.frequency.setValueAtTime(P.droneBase * (1 + P.droneDetune), audioCtx.currentTime);
+  panR = audioCtx.createStereoPanner();
+  panR.pan.setValueAtTime(P.droneWidth, audioCtx.currentTime);
+  droneR.connect(panR);
+  panR.connect(droneGain);
+  droneR.start();
+
+  droneRunning = true;
+  startScopeLoop();
+}
+
+function startDrone() {
+  if (!audioCtx || !droneRunning || !P.droneOn) return;
+  const t = audioCtx.currentTime;
+  droneGain.gain.cancelScheduledValues(t);
+  droneGain.gain.setValueAtTime(droneGain.gain.value, t);
+  droneGain.gain.linearRampToValueAtTime(P.droneVol, t + 1.2);
+}
+
+function stopDrone() {
+  if (!audioCtx || !droneRunning) return;
+  const t = audioCtx.currentTime;
+  droneGain.gain.cancelScheduledValues(t);
+  droneGain.gain.setValueAtTime(droneGain.gain.value, t);
+  droneGain.gain.linearRampToValueAtTime(0, t + 0.8);
+}
+
+function updateDrone(tx, ty, W, H) {
+  if (!audioCtx || !droneRunning || !audioOn || !P.droneOn) return;
+  const t = audioCtx.currentTime;
+  const freq = P.droneBase + (tx / W) * P.droneRange;
+  droneL.frequency.linearRampToValueAtTime(freq, t + 0.15);
+  droneR.frequency.linearRampToValueAtTime(freq * (1 + P.droneDetune * 0.1), t + 0.15);
+  const cutoff = P.filterFloor + ((1 - ty / H) * (P.filterCeil - P.filterFloor));
+  droneFilter.frequency.linearRampToValueAtTime(Math.max(P.filterFloor, Math.min(cutoff, P.filterCeil)), t + 0.12);
+}
+
+// ─── Play composite (additive) ───────────────────────────────────────────────
+function playComposite(N, factor, magic, pct) {
+  if (!audioCtx || !audioOn || !P.compsOn) return;
+  const t = audioCtx.currentTime;
+  const scale = SCALES[P.scale] || SCALES.penta;
+
+  const idx = Math.floor((pct / 50) * (scale.length - 1));
+  const rootHz = P.compBase * (P.rootFreq / 110);
+  const baseFreq = rootHz * scale[Math.min(idx, scale.length - 1)];
+
+  const f2 = Math.floor(N / factor);
+  const ratio = Math.min(factor, f2) / Math.max(factor, f2);
+  const numPartials = Math.min(P.maxPartials, Math.floor(1 / (ratio + 0.05)) + 2);
+
+  const magicInfluence = P.brightnessToMagic;
+  const brightness = Math.max(0.1, Math.min(1, P.brightness + (1 - P.brightness) * (1 - magicInfluence * Math.min(1, magic / 800))));
+  const baseVol = 0.055 * brightness;
+  const drift = P.harmDrift / 100;
+
+  for (let p = 1; p <= numPartials; p++) {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    const pan = audioCtx.createStereoPanner();
+
+    osc.type = p === 1 ? 'sine' : (p % 2 === 0 ? 'sine' : 'triangle');
+    const partialFreq = baseFreq * p * (1 + (ratio - 0.5) * drift * p);
+    osc.frequency.setValueAtTime(Math.min(partialFreq, 3200), t);
+
+    const amp = baseVol * Math.pow(brightness, p - 1) / p;
+    const atk = P.compAtk;
+    const dec = P.compDecay;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(amp, t + atk);
+    g.gain.exponentialRampToValueAtTime(amp * 0.3, t + atk + 0.07);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dec + p * 0.04);
+
+    const sp = P.panSpread / 100;
+    pan.pan.setValueAtTime((p % 2 === 0 ? sp : -sp) * (1 - brightness * 0.4), t);
+
+    osc.connect(g);
+    g.connect(pan);
+    pan.connect(masterGain);
+    if (P.compRevSend > 0) {
+      const rsGain = audioCtx.createGain();
+      rsGain.gain.setValueAtTime(P.compRevSend, t);
+      pan.connect(rsGain);
+      rsGain.connect(reverbNode);
+    }
+
+    osc.start(t);
+    osc.stop(t + dec + 0.5);
+  }
+}
+
+// ─── Play prime (FM) ─────────────────────────────────────────────────────────
+function playPrime(N, magic, pct) {
+  if (!audioCtx || !audioOn || !P.primesOn) return;
+  const t = audioCtx.currentTime;
+  const scale = SCALES[P.scale] || SCALES.whole;
+
+  const idx = Math.floor((pct / 50) * (scale.length - 1));
+  const rootHz = P.primeBase * (P.rootFreq / 138);
+  const carrierFreq = rootHz * scale[Math.min(idx, scale.length - 1)];
+
+  const modIndex = 1.8 + (magic / 300) * P.modIdx;
+  const modRatio = P.modChaos + (magic % 7) * 0.13;
+
+  const carrier = audioCtx.createOscillator();
+  carrier.type = 'sine';
+  carrier.frequency.setValueAtTime(carrierFreq, t);
+
+  const modulator = audioCtx.createOscillator();
+  modulator.type = 'sine';
+  modulator.frequency.setValueAtTime(carrierFreq * modRatio, t);
+  const modGain = audioCtx.createGain();
+  modGain.gain.setValueAtTime(carrierFreq * modIndex, t);
+  modulator.connect(modGain);
+  modGain.connect(carrier.frequency);
+
+  const lfo = audioCtx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.setValueAtTime(P.lfoRate + magic % 11, t);
+  const lfoGain = audioCtx.createGain();
+  lfoGain.gain.setValueAtTime(P.lfoDepth, t);
+  lfo.connect(lfoGain);
+
+  const carrierGain = audioCtx.createGain();
+  const pan = audioCtx.createStereoPanner();
+  pan.pan.setValueAtTime((pct / 50) * 2 - 1, t);
+
+  const dec = P.primeDecay;
+  carrierGain.gain.setValueAtTime(0, t);
+  carrierGain.gain.linearRampToValueAtTime(0.09, t + 0.004);
+  carrierGain.gain.exponentialRampToValueAtTime(0.03, t + 0.12);
+  carrierGain.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+
+  lfoGain.connect(carrierGain.gain);
+  carrier.connect(carrierGain);
+  carrierGain.connect(pan);
+  pan.connect(masterGain);
+  if (P.primeRevSend > 0) {
+    const rsGain = audioCtx.createGain();
+    rsGain.gain.setValueAtTime(P.primeRevSend, t);
+    pan.connect(rsGain);
+    rsGain.connect(reverbNode);
+  }
+
+  // Noise burst
+  if (P.noiseLevel > 0) {
+    const bufLen = audioCtx.sampleRate * 0.06;
+    const noiseBuf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+    const nd = noiseBuf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) nd[i] = (Math.random() * 2 - 1);
+    const noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = noiseBuf;
+    const noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(carrierFreq * 2.2, t);
+    noiseFilter.Q.setValueAtTime(3.5, t);
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(P.noiseLevel, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(masterGain);
+    noiseSource.start(t); noiseSource.stop(t + 0.07);
+  }
+
+  // Dissonant partial
+  if (P.dissonance > 0) {
+    const dissonant = audioCtx.createOscillator();
+    dissonant.type = 'triangle';
+    dissonant.frequency.setValueAtTime(carrierFreq * 1.059, t);
+    const disG = audioCtx.createGain();
+    disG.gain.setValueAtTime(0, t);
+    disG.gain.linearRampToValueAtTime(P.dissonance, t + 0.01);
+    disG.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    dissonant.connect(disG);
+    disG.connect(masterGain);
+    if (P.primeRevSend > 0) disG.connect(reverbNode);
+    dissonant.start(t); dissonant.stop(t + 0.7);
+  }
+
+  carrier.start(t); carrier.stop(t + dec + 0.2);
+  modulator.start(t); modulator.stop(t + dec + 0.2);
+  lfo.start(t); lfo.stop(t + dec + 0.2);
+}
+
+// ─── Oscilloscope ─────────────────────────────────────────────────────────
+const scopeCanvas = document.getElementById('scope-canvas');
+const scopeCtx = scopeCanvas.getContext('2d');
+let scopeFrame = null;
+
+function startScopeLoop() {
+  function drawScope() {
+    scopeFrame = requestAnimationFrame(drawScope);
+    if (!analyserNode) return;
+    analyserNode.getByteTimeDomainData(analyserBuf);
+
+    const W = scopeCanvas.offsetWidth;
+    const H = scopeCanvas.height;
+    scopeCanvas.width = W;
+
+    scopeCtx.clearRect(0, 0, W, H);
+    scopeCtx.beginPath();
+    scopeCtx.strokeStyle = '#44e8ff';
+    scopeCtx.lineWidth = 1.2;
+    scopeCtx.shadowColor = '#44e8ff';
+    scopeCtx.shadowBlur = 4;
+
+    const sliceW = W / analyserBuf.length;
+    for (let i = 0; i < analyserBuf.length; i++) {
+      const v = analyserBuf[i] / 128.0;
+      const y = (v * H) / 2;
+      if (i === 0) scopeCtx.moveTo(0, y);
+      else scopeCtx.lineTo(i * sliceW, y);
+    }
+    scopeCtx.stroke();
+  }
+  drawScope();
+}
+
+// ─── Audio viz (top bar) ─────────────────────────────────────────────────────
+const vizBars = document.querySelectorAll('#audio-viz span');
+let vizAnimFrame = null;
+let vizPhase = 0;
+
+function animateViz(isPrime) {
+  cancelAnimationFrame(vizAnimFrame);
+  let age = 0;
+  const decay = 18;
+  const color = isPrime ? '#f07070' : '#2ecf97';
+  vizBars.forEach(b => b.style.background = color);
+
+  function tick() {
+    age++;
+    vizPhase += isPrime ? 0.42 : 0.28;
+    vizBars.forEach((b, i) => {
+      const base = Math.sin(vizPhase + i * 0.7) * 0.5 + 0.5;
+      const h = Math.max(2, base * 22 * Math.exp(-age / decay));
+      b.style.height = h + 'px';
+    });
+    if (age < decay * 3) vizAnimFrame = requestAnimationFrame(tick);
+    else vizBars.forEach(b => { b.style.height = '2px'; });
+  }
+  tick();
+}
+
+// ─── Sound Lab UI ─────────────────────────────────────────────────────────────
+// Toggle panel
+const labHeader = document.getElementById('sound-lab-header');
+const labBody = document.getElementById('sound-lab-body');
+const labChevron = document.getElementById('lab-chevron');
+const labDot = document.getElementById('lab-dot');
+
+labHeader.addEventListener('click', () => {
+  const open = labBody.classList.toggle('open');
+  labChevron.classList.toggle('open', open);
+});
+
+// Helper: bind a range slider → param + display
+function bindSlider(id, valId, paramKey, transform) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    const raw = parseFloat(sl.value);
+    const val = transform ? transform(raw) : raw;
+    P[paramKey] = val;
+    vl.textContent = transform ? val.toFixed(2) : raw;
+    applyLiveParams();
+  });
+}
+
+// Helper: bind toggle button
+function bindToggle(id, paramKey, onClass) {
+  const btn = document.getElementById(id);
+  btn.addEventListener('click', () => {
+    P[paramKey] = !P[paramKey];
+    btn.classList.toggle(onClass, P[paramKey]);
+    applyLiveParams();
+  });
+}
+
+function applyLiveParams() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  // Master vol
+  masterGain.gain.setTargetAtTime(P.masterVol, t, 0.05);
+
+  // Reverb wet
+  if (reverbGain) reverbGain.gain.setTargetAtTime(P.reverbWet, t, 0.1);
+
+  // Drone on/off
+  if (droneRunning) {
+    if (P.droneOn && audioOn && running) {
+      droneGain.gain.cancelScheduledValues(t);
+      droneGain.gain.setValueAtTime(droneGain.gain.value, t);
+      droneGain.gain.linearRampToValueAtTime(P.droneVol, t + 0.5);
+    } else if (!P.droneOn) {
+      droneGain.gain.cancelScheduledValues(t);
+      droneGain.gain.setValueAtTime(droneGain.gain.value, t);
+      droneGain.gain.linearRampToValueAtTime(0, t + 0.5);
+    }
+
+    // Drone base freq
+    droneL.frequency.setTargetAtTime(P.droneBase, t, 0.2);
+    droneR.frequency.setTargetAtTime(P.droneBase * (1 + P.droneDetune * 0.1), t, 0.2);
+
+    // Stereo width
+    if (panL) panL.pan.setTargetAtTime(-P.droneWidth, t, 0.1);
+    if (panR) panR.pan.setTargetAtTime(P.droneWidth, t, 0.1);
+
+    // Filter Q
+    if (droneFilter) droneFilter.Q.setTargetAtTime(P.filterQ, t, 0.1);
+  }
+
+  // Update toggle button visuals
+  document.getElementById('lab-dot').classList.toggle('active', audioOn);
+}
+
+// Bind all sliders
+bindSlider('sl-master-vol', 'vl-master-vol', 'masterVol', v => +(v/100).toFixed(2));
+bindSlider('sl-reverb-wet', 'vl-reverb-wet', 'reverbWet', v => +(v/100).toFixed(2));
+bindSlider('sl-root-freq',  'vl-root-freq',  'rootFreq',  v => { document.getElementById('vl-root-freq').textContent = Math.round(v) + 'Hz'; return v; });
+bindSlider('sl-prime-base', 'vl-prime-base', 'primeBase', v => Math.round(v));
+bindSlider('sl-mod-idx',    'vl-mod-idx',    'modIdx',    v => +v.toFixed(1));
+bindSlider('sl-mod-chaos',  'vl-mod-chaos',  'modChaos',  v => +v.toFixed(2));
+bindSlider('sl-lfo-rate',   'vl-lfo-rate',   'lfoRate',   v => +v.toFixed(1));
+bindSlider('sl-lfo-depth',  'vl-lfo-depth',  'lfoDepth',  v => +(v/1000).toFixed(4));
+bindSlider('sl-noise-level','vl-noise-level','noiseLevel',v => +(v/1000).toFixed(4));
+bindSlider('sl-dissonance', 'vl-dissonance', 'dissonance',v => +(v/1000).toFixed(4));
+bindSlider('sl-prime-decay','vl-prime-decay','primeDecay', v => +v.toFixed(2));
+bindSlider('sl-prime-rev',  'vl-prime-rev',  'primeRevSend', v => +(v/100).toFixed(2));
+
+bindSlider('sl-comp-base',  'vl-comp-base',  'compBase',  v => Math.round(v));
+bindSlider('sl-partials',   'vl-partials',   'maxPartials',v => Math.round(v));
+bindSlider('sl-brightness', 'vl-brightness', 'brightness',v => +(v/100).toFixed(2));
+bindSlider('sl-brt-magic',  'vl-brt-magic',  'brightnessToMagic', v => +(v/100).toFixed(2));
+bindSlider('sl-harm-drift', 'vl-harm-drift', 'harmDrift', v => +(v/100).toFixed(3));
+bindSlider('sl-pan-spread', 'vl-pan-spread', 'panSpread', v => +(v/100).toFixed(2));
+bindSlider('sl-comp-atk',   'vl-comp-atk',   'compAtk',  v => +(v/1000).toFixed(4));
+bindSlider('sl-comp-decay', 'vl-comp-decay', 'compDecay', v => +v.toFixed(2));
+bindSlider('sl-comp-rev',   'vl-comp-rev',   'compRevSend', v => +(v/100).toFixed(2));
+
+bindSlider('sl-drone-vol',  'vl-drone-vol',  'droneVol',  v => +(v/1000).toFixed(4));
+bindSlider('sl-drone-base', 'vl-drone-base', 'droneBase', v => Math.round(v));
+bindSlider('sl-drone-range','vl-drone-range','droneRange',v => Math.round(v));
+bindSlider('sl-drone-detune','vl-drone-detune','droneDetune', v => +(v/1000).toFixed(4));
+bindSlider('sl-drone-width','vl-drone-width','droneWidth', v => +(v/100).toFixed(2));
+bindSlider('sl-filter-floor','vl-filter-floor','filterFloor', v => Math.round(v));
+bindSlider('sl-filter-ceil','vl-filter-ceil','filterCeil', v => Math.round(v));
+bindSlider('sl-filter-q',   'vl-filter-q',   'filterQ',   v => +v.toFixed(1));
+
+// Override display-only labels for some sliders
+document.getElementById('sl-master-vol').addEventListener('input', e => {
+  document.getElementById('vl-master-vol').textContent = e.target.value;
+});
+document.getElementById('sl-reverb-wet').addEventListener('input', e => {
+  document.getElementById('vl-reverb-wet').textContent = e.target.value;
+});
+document.getElementById('sl-root-freq').addEventListener('input', e => {
+  document.getElementById('vl-root-freq').textContent = e.target.value;
+});
+document.getElementById('sl-lfo-depth').addEventListener('input', e => {
+  document.getElementById('vl-lfo-depth').textContent = e.target.value;
+});
+document.getElementById('sl-noise-level').addEventListener('input', e => {
+  document.getElementById('vl-noise-level').textContent = e.target.value;
+});
+document.getElementById('sl-dissonance').addEventListener('input', e => {
+  document.getElementById('vl-dissonance').textContent = e.target.value;
+});
+document.getElementById('sl-comp-atk').addEventListener('input', e => {
+  document.getElementById('vl-comp-atk').textContent = e.target.value;
+});
+document.getElementById('sl-drone-vol').addEventListener('input', e => {
+  document.getElementById('vl-drone-vol').textContent = e.target.value;
+});
+document.getElementById('sl-drone-detune').addEventListener('input', e => {
+  document.getElementById('vl-drone-detune').textContent = e.target.value;
+});
+
+// Scale select
+document.getElementById('sel-scale').addEventListener('change', e => {
+  P.scale = e.target.value;
+});
+
+// Drone waveform
+document.getElementById('sel-drone-wave').addEventListener('change', e => {
+  P.droneWave = e.target.value;
+  if (droneL) droneL.type = P.droneWave;
+  if (droneR) droneR.type = P.droneWave;
+});
+
+// Toggles
+bindToggle('tog-prime', 'primesOn', 'on-red');
+bindToggle('tog-comp',  'compsOn',  'on');
+bindToggle('tog-drone', 'droneOn',  'on-purple');
+
+// ─── Presets ──────────────────────────────────────────────────────────────────
+const PRESETS = {
+  default: {
+    masterVol:0.72, reverbWet:0.22, rootFreq:110, scale:'penta',
+    primeBase:138, modIdx:4.5, modChaos:0.91, lfoRate:7, lfoDepth:0.018,
+    noiseLevel:0.04, dissonance:0.022, primeDecay:0.85, primeRevSend:0.5,
+    compBase:110, maxPartials:6, brightness:0.55, brightnessToMagic:1.0,
+    harmDrift:0.08, panSpread:0.30, compAtk:0.008, compDecay:0.55, compRevSend:0.5,
+    droneVol:0.085, droneBase:55, droneRange:132, droneDetune:0.013,
+    droneWidth:0.55, filterFloor:180, filterCeil:1000, filterQ:1.4, droneWave:'sawtooth',
+    primesOn:true, compsOn:true, droneOn:true,
+  },
+  alien: {
+    masterVol:0.80, reverbWet:0.55, rootFreq:174, scale:'whole',
+    primeBase:220, modIdx:11, modChaos:1.73, lfoRate:22, lfoDepth:0.055,
+    noiseLevel:0.07, dissonance:0.08, primeDecay:1.4, primeRevSend:0.9,
+    compBase:174, maxPartials:4, brightness:0.9, brightnessToMagic:0.2,
+    harmDrift:0.18, panSpread:0.8, compAtk:0.001, compDecay:0.35, compRevSend:0.7,
+    droneVol:0.12, droneBase:87, droneRange:220, droneDetune:0.031,
+    droneWidth:0.9, filterFloor:500, filterCeil:3800, filterQ:6.5, droneWave:'square',
+    primesOn:true, compsOn:true, droneOn:true,
+  },
+  glass: {
+    masterVol:0.60, reverbWet:0.75, rootFreq:220, scale:'just',
+    primeBase:110, modIdx:1.2, modChaos:1.01, lfoRate:2, lfoDepth:0.005,
+    noiseLevel:0.01, dissonance:0.005, primeDecay:2.5, primeRevSend:0.9,
+    compBase:220, maxPartials:10, brightness:0.95, brightnessToMagic:0.3,
+    harmDrift:0.02, panSpread:0.6, compAtk:0.001, compDecay:2.0, compRevSend:0.85,
+    droneVol:0.04, droneBase:27, droneRange:60, droneDetune:0.004,
+    droneWidth:0.3, filterFloor:800, filterCeil:4000, filterQ:0.7, droneWave:'sine',
+    primesOn:true, compsOn:true, droneOn:true,
+  },
+  deep: {
+    masterVol:0.80, reverbWet:0.65, rootFreq:80, scale:'harm',
+    primeBase:82, modIdx:2.5, modChaos:1.41, lfoRate:0.5, lfoDepth:0.04,
+    noiseLevel:0.02, dissonance:0.04, primeDecay:2.0, primeRevSend:0.8,
+    compBase:82, maxPartials:4, brightness:0.2, brightnessToMagic:0.5,
+    harmDrift:0.04, panSpread:0.2, compAtk:0.05, compDecay:1.8, compRevSend:0.75,
+    droneVol:0.18, droneBase:20, droneRange:80, droneDetune:0.007,
+    droneWidth:0.75, filterFloor:80, filterCeil:380, filterQ:2.5, droneWave:'sawtooth',
+    primesOn:true, compsOn:true, droneOn:true,
+  },
+  chaos: {
+    masterVol:0.65, reverbWet:0.3, rootFreq:155, scale:'chrom',
+    primeBase:300, modIdx:12, modChaos:1.99, lfoRate:30, lfoDepth:0.09,
+    noiseLevel:0.09, dissonance:0.09, primeDecay:0.3, primeRevSend:0.2,
+    compBase:155, maxPartials:12, brightness:0.8, brightnessToMagic:0.0,
+    harmDrift:0.85, panSpread:1.0, compAtk:0.001, compDecay:0.25, compRevSend:0.15,
+    droneVol:0.08, droneBase:80, droneRange:300, droneDetune:0.05,
+    droneWidth:0.95, filterFloor:200, filterCeil:4000, filterQ:9, droneWave:'square',
+    primesOn:true, compsOn:true, droneOn:true,
+  },
+  minimal: {
+    masterVol:0.50, reverbWet:0.1, rootFreq:110, scale:'penta',
+    primeBase:110, modIdx:0.8, modChaos:1.41, lfoRate:3, lfoDepth:0.006,
+    noiseLevel:0.0, dissonance:0.0, primeDecay:0.5, primeRevSend:0.1,
+    compBase:110, maxPartials:2, brightness:0.5, brightnessToMagic:1.0,
+    harmDrift:0.02, panSpread:0.1, compAtk:0.01, compDecay:0.35, compRevSend:0.1,
+    droneVol:0.02, droneBase:55, droneRange:55, droneDetune:0.005,
+    droneWidth:0.2, filterFloor:150, filterCeil:600, filterQ:0.8, droneWave:'sine',
+    primesOn:true, compsOn:true, droneOn:true,
+  },
+  ritual: {
+    masterVol:0.75, reverbWet:0.80, rootFreq:111, scale:'harm',
+    primeBase:111, modIdx:3.5, modChaos:1.5, lfoRate:0.7, lfoDepth:0.03,
+    noiseLevel:0.005, dissonance:0.01, primeDecay:2.8, primeRevSend:0.95,
+    compBase:111, maxPartials:5, brightness:0.15, brightnessToMagic:0.6,
+    harmDrift:0.05, panSpread:0.4, compAtk:0.08, compDecay:2.4, compRevSend:0.9,
+    droneVol:0.22, droneBase:37, droneRange:44, droneDetune:0.008,
+    droneWidth:0.7, filterFloor:100, filterCeil:520, filterQ:4.0, droneWave:'sawtooth',
+    primesOn:false, compsOn:true, droneOn:true,
+  },
+  jazz: {
+    masterVol:0.65, reverbWet:0.35, rootFreq:138, scale:'just',
+    primeBase:138, modIdx:2.2, modChaos:1.25, lfoRate:4.5, lfoDepth:0.012,
+    noiseLevel:0.025, dissonance:0.018, primeDecay:0.9, primeRevSend:0.45,
+    compBase:138, maxPartials:8, brightness:0.7, brightnessToMagic:0.7,
+    harmDrift:0.12, panSpread:0.5, compAtk:0.005, compDecay:0.75, compRevSend:0.4,
+    droneVol:0.06, droneBase:69, droneRange:100, droneDetune:0.009,
+    droneWidth:0.45, filterFloor:250, filterCeil:1800, filterQ:1.8, droneWave:'triangle',
+    primesOn:true, compsOn:true, droneOn:true,
+  },
+};
+
+const SLIDER_MAP = {
+  masterVol:      { id:'sl-master-vol', vId:'vl-master-vol', toSlider: v=>Math.round(v*100), toDisp: v=>Math.round(v*100) },
+  reverbWet:      { id:'sl-reverb-wet', vId:'vl-reverb-wet', toSlider: v=>Math.round(v*100), toDisp: v=>Math.round(v*100) },
+  rootFreq:       { id:'sl-root-freq',  vId:'vl-root-freq',  toSlider: v=>Math.round(v),     toDisp: v=>Math.round(v) },
+  primeBase:      { id:'sl-prime-base', vId:'vl-prime-base', toSlider: v=>Math.round(v),     toDisp: v=>Math.round(v) },
+  modIdx:         { id:'sl-mod-idx',    vId:'vl-mod-idx',    toSlider: v=>v,                 toDisp: v=>+v.toFixed(1) },
+  modChaos:       { id:'sl-mod-chaos',  vId:'vl-mod-chaos',  toSlider: v=>v,                 toDisp: v=>+v.toFixed(2) },
+  lfoRate:        { id:'sl-lfo-rate',   vId:'vl-lfo-rate',   toSlider: v=>v,                 toDisp: v=>+v.toFixed(1) },
+  lfoDepth:       { id:'sl-lfo-depth',  vId:'vl-lfo-depth',  toSlider: v=>Math.round(v*1000),toDisp: v=>Math.round(v*1000) },
+  noiseLevel:     { id:'sl-noise-level',vId:'vl-noise-level',toSlider: v=>Math.round(v*1000),toDisp: v=>Math.round(v*1000) },
+  dissonance:     { id:'sl-dissonance', vId:'vl-dissonance', toSlider: v=>Math.round(v*1000),toDisp: v=>Math.round(v*1000) },
+  primeDecay:     { id:'sl-prime-decay',vId:'vl-prime-decay',toSlider: v=>v,                 toDisp: v=>+v.toFixed(2) },
+  primeRevSend:   { id:'sl-prime-rev',  vId:'vl-prime-rev',  toSlider: v=>Math.round(v*100), toDisp: v=>Math.round(v*100) },
+  compBase:       { id:'sl-comp-base',  vId:'vl-comp-base',  toSlider: v=>Math.round(v),     toDisp: v=>Math.round(v) },
+  maxPartials:    { id:'sl-partials',   vId:'vl-partials',   toSlider: v=>Math.round(v),     toDisp: v=>Math.round(v) },
+  brightness:     { id:'sl-brightness', vId:'vl-brightness', toSlider: v=>Math.round(v*100), toDisp: v=>Math.round(v*100) },
+  brightnessToMagic:{ id:'sl-brt-magic',vId:'vl-brt-magic', toSlider: v=>Math.round(v*100), toDisp: v=>Math.round(v*100) },
+  harmDrift:      { id:'sl-harm-drift', vId:'vl-harm-drift', toSlider: v=>Math.round(v*100), toDisp: v=>Math.round(v*100) },
+  panSpread:      { id:'sl-pan-spread', vId:'vl-pan-spread', toSlider: v=>Math.round(v*100), toDisp: v=>Math.round(v*100) },
+  compAtk:        { id:'sl-comp-atk',   vId:'vl-comp-atk',  toSlider: v=>Math.round(v*1000),toDisp: v=>Math.round(v*1000) },
+  compDecay:      { id:'sl-comp-decay', vId:'vl-comp-decay', toSlider: v=>v,                 toDisp: v=>+v.toFixed(2) },
+  compRevSend:    { id:'sl-comp-rev',   vId:'vl-comp-rev',  toSlider: v=>Math.round(v*100), toDisp: v=>Math.round(v*100) },
+  droneVol:       { id:'sl-drone-vol',  vId:'vl-drone-vol',  toSlider: v=>Math.round(v*1000),toDisp: v=>Math.round(v*1000) },
+  droneBase:      { id:'sl-drone-base', vId:'vl-drone-base', toSlider: v=>Math.round(v),     toDisp: v=>Math.round(v) },
+  droneRange:     { id:'sl-drone-range',vId:'vl-drone-range',toSlider: v=>Math.round(v),     toDisp: v=>Math.round(v) },
+  droneDetune:    { id:'sl-drone-detune',vId:'vl-drone-detune',toSlider:v=>Math.round(v*1000),toDisp:v=>Math.round(v*1000)},
+  droneWidth:     { id:'sl-drone-width',vId:'vl-drone-width',toSlider: v=>Math.round(v*100), toDisp: v=>Math.round(v*100) },
+  filterFloor:    { id:'sl-filter-floor',vId:'vl-filter-floor',toSlider:v=>Math.round(v),    toDisp: v=>Math.round(v) },
+  filterCeil:     { id:'sl-filter-ceil',vId:'vl-filter-ceil',toSlider: v=>Math.round(v),     toDisp: v=>Math.round(v) },
+  filterQ:        { id:'sl-filter-q',   vId:'vl-filter-q',  toSlider: v=>v,                 toDisp: v=>+v.toFixed(1) },
+};
+
+function applyPreset(name) {
+  const pr = PRESETS[name];
+  if (!pr) return;
+  Object.assign(P, pr);
+
+  // Update all sliders
+  for (const [key, cfg] of Object.entries(SLIDER_MAP)) {
+    if (P[key] === undefined) continue;
+    const sl = document.getElementById(cfg.id);
+    const vl = document.getElementById(cfg.vId);
+    if (sl) sl.value = cfg.toSlider(P[key]);
+    if (vl) vl.textContent = cfg.toDisp(P[key]);
+  }
+
+  // Scale select
+  const scaleSel = document.getElementById('sel-scale');
+  if (scaleSel) scaleSel.value = P.scale;
+
+  // Drone wave select
+  const waveSel = document.getElementById('sel-drone-wave');
+  if (waveSel) waveSel.value = P.droneWave;
+  if (droneL) droneL.type = P.droneWave;
+  if (droneR) droneR.type = P.droneWave;
+
+  // Toggles
+  document.getElementById('tog-prime').classList.toggle('on-red', P.primesOn);
+  document.getElementById('tog-comp').classList.toggle('on', P.compsOn);
+  document.getElementById('tog-drone').classList.toggle('on-purple', P.droneOn);
+
+  applyLiveParams();
+}
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+});
+
+// ─── Audio toggle ─────────────────────────────────────────────────────────────
+const audioBtn = document.getElementById('audio-btn');
+const audioViz = document.getElementById('audio-viz');
+
+audioBtn.addEventListener('click', () => {
+  if (!audioCtx) initAudio();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  audioOn = !audioOn;
+  audioBtn.classList.toggle('on', audioOn);
+  document.getElementById('audio-lbl').textContent = audioOn ? 'audio on' : 'audio off';
+  audioBtn.querySelector('.icon').textContent = audioOn ? '🔊' : '🔇';
+  audioViz.classList.toggle('active', audioOn);
+  labDot.classList.toggle('active', audioOn);
+
+  if (audioOn && running) startDrone();
+  else stopDrone();
+});
+
+// ─── Turtle fleet ────────────────────────────────────────────────────────────
+const stage = document.getElementById('stage');
+const logEl = document.getElementById('log');
+const liveDot = document.getElementById('live-dot');
+const liveLbl = document.getElementById('live-lbl');
+
+let running = false, stepTimer = null;
+let N = 3, primes = 0, comps = 0, frameCount = 0;
+
+// Fleet state — array of turtle objects
+let fleet = [];
+
+function makeTurtle(i, total) {
+  const el = document.createElement('div');
+  el.className = 'turtle-el';
+  el.textContent = '🐢';
+  stage.appendChild(el);
+
+  const W = stage.clientWidth  || 800;
+  const H = stage.clientHeight || 320;
+  // Spread spawn points evenly across stage with some jitter
+  const cols = Math.ceil(Math.sqrt(total));
+  const col = i % cols;
+  const row = Math.floor(i / cols);
+  const cellW = W / cols;
+  const cellH = H / Math.ceil(total / cols);
+  const x = cellW * col + cellW * 0.2 + Math.random() * cellW * 0.6;
+  const y = cellH * row + cellH * 0.2 + Math.random() * cellH * 0.6;
+
+  // Each turtle gets a unique launch angle so they immediately diverge
+  const launchAngle = (i / total) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
+  const speed = 8 + Math.random() * 8;
+
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+
+  return {
+    el,
+    x, y,
+    vx: Math.cos(launchAngle) * speed,
+    vy: Math.sin(launchAngle) * speed,
+    wigglePhase: Math.random() * Math.PI * 2,
+    // each turtle gets its own phase offset so identical input → different trajectories
+    phaseOffset: (i / total) * Math.PI * 2,
+  };
+}
+
+function spawnFleet() {
+  // Clear any existing turtles
+  stage.querySelectorAll('.turtle-el').forEach(e => e.remove());
+  fleet = [];
+  const count = parseInt(document.getElementById('turtle-count').value);
+  for (let i = 0; i < count; i++) fleet.push(makeTurtle(i, count));
+}
+
+function addTrail(x, y, isPr) {
+  if (!document.getElementById('trails').checked) return;
+  const d = document.createElement('div');
+  d.className = 'tdot';
+  d.style.left = (x + 14) + 'px';
+  d.style.top  = (y + 14) + 'px';
+  d.style.background = isPr ? '#d94f4f' : '#17a872';
+  d.style.opacity = '0.55';
+  stage.appendChild(d);
+  setTimeout(() => {
+    d.style.transition = 'opacity 1.5s';
+    d.style.opacity = '0';
+    setTimeout(() => d.remove(), 1600);
+  }, 200);
+}
+
+function moveTurtles(magic, pct, isPr) {
+  const W = stage.clientWidth  - 40;
+  const H = stage.clientHeight - 40;
+
+  const baseAngle = (pct / 100) * Math.PI * 2;
+  const basespd   = 18 + magic / 8000;
+  const spd       = Math.min(basespd, isPr ? 120 : 55);
+  const panicOn   = isPr && document.getElementById('panic').checked;
+  const momentum  = isPr ? 0.35 : 0.55;
+  const minSpd    = 10, maxSpd = isPr ? 110 : 60;
+
+  let cx = 0, cy = 0; // centroid for drone
+
+  fleet.forEach((t, idx) => {
+    // Each turtle steers toward a slightly rotated version of the shared angle
+    const angleOffset = t.phaseOffset * 0.18; // subtle divergence per turtle
+    const angle = baseAngle + angleOffset;
+
+    t.wigglePhase += 0.55 + (isPr ? 0.8 : 0);
+    const wx = Math.sin(t.wigglePhase) * (isPr ? 38 : 18);
+    const wy = Math.cos(t.wigglePhase * 0.7) * (isPr ? 28 : 14);
+
+    const targetVx = Math.cos(angle) * spd + wx;
+    const targetVy = Math.sin(angle) * spd + wy;
+
+    t.vx = t.vx * momentum + targetVx * (1 - momentum);
+    t.vy = t.vy * momentum + targetVy * (1 - momentum);
+
+    if (panicOn) { t.vx *= 1.8; t.vy *= 1.8; }
+
+    const mag = Math.sqrt(t.vx * t.vx + t.vy * t.vy);
+    if (mag < minSpd) { t.vx = t.vx / mag * minSpd; t.vy = t.vy / mag * minSpd; }
+    if (mag > maxSpd) { t.vx = t.vx / mag * maxSpd; t.vy = t.vy / mag * maxSpd; }
+
+    t.x += t.vx;
+    t.y += t.vy;
+
+    if (t.x <= 0) { t.x = 0; t.vx =  Math.abs(t.vx) + 4; }
+    if (t.x >= W) { t.x = W; t.vx = -(Math.abs(t.vx) + 4); }
+    if (t.y <= 0) { t.y = 0; t.vy =  Math.abs(t.vy) + 4; }
+    if (t.y >= H) { t.y = H; t.vy = -(Math.abs(t.vy) + 4); }
+
+    const faceAngle = Math.atan2(t.vy, t.vx) * 180 / Math.PI;
+    const sc = isPr ? 1.5 : 1.0;
+    t.el.style.left      = t.x + 'px';
+    t.el.style.top       = t.y + 'px';
+    t.el.style.transform = `rotate(${faceAngle.toFixed(1)}deg) scale(${sc})`;
+
+    if (frameCount % 2 === 0) addTrail(t.x, t.y, isPr);
+    cx += t.x; cy += t.y;
+  });
+
+  frameCount++;
+  // Use swarm centroid for spatial drone
+  if (fleet.length > 0) updateDrone(cx / fleet.length, cy / fleet.length, W, H);
+}
+
+// ─── Turtle count slider ──────────────────────────────────────────────────────
+document.getElementById('speed').addEventListener('input', e => {
+  document.getElementById('speedOut').textContent = e.target.value;
+});
+
+document.getElementById('turtle-count').addEventListener('input', e => {
+  document.getElementById('turtleCountOut').textContent = e.target.value;
+  // Respawn fleet live — preserve running state
+  const wasRunning = running;
+  if (wasRunning) { running = false; clearTimeout(stepTimer); }
+  stage.querySelectorAll('.tdot').forEach(d => d.remove());
+  spawnFleet();
+  if (wasRunning) { running = true; step(); }
+});
+
+function updateStats(n, magic, pct) {
+  document.getElementById('sN').textContent = n;
+  document.getElementById('sMagic').textContent = magic.toLocaleString();
+  document.getElementById('sPct').textContent = pct.toFixed(3) + '%';
+  document.getElementById('sPrimes').textContent = primes;
+  document.getElementById('sComps').textContent = comps;
+}
+
+function addLog(n, body, pct, cls) {
+  const line = document.createElement('div');
+  line.className = 'll ' + cls;
+  line.innerHTML = `<span class="lN">N ${n}</span><span class="lbody">${body}</span><span class="lpct">${pct.toFixed(4)}%</span>`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+  if (logEl.children.length > 250) logEl.children[0].remove();
+}
+
+function getDelay() { return Math.max(18, 320 - parseInt(document.getElementById('speed').value) * 28); }
+
+function setLive(on) {
+  liveDot.style.background = on ? '#17a872' : '#6b778f';
+  liveLbl.textContent = on ? 'live' : 'idle';
+  liveLbl.style.color = on ? '#17a872' : '#6b778f';
+}
+
+function step() {
+  if (!running) return;
+  if (N >= 100001) { N = 3; primes = 0; comps = 0; }
+  for (let magic = 1; magic <= 1000000; magic++) {
+    const rightPos = find_next_gauss(N);
+    const rightSum = gauss_sum(rightPos + magic);
+    const rightDiff = rightSum - N;
+    const leftPos = find_next_gauss(rightDiff);
+    const leftSum = gauss_sum(leftPos);
+    const fz = rightDiff - leftSum;
+    let factor = (magic + rightPos) + leftPos + 1;
+    if (factor % 2 === 0 && factor !== N) { let f = factor; while (f % 2 === 0 && f !== 0) f = Math.floor(f / 2); factor = f; }
+    if (fz === 0) {
+      const pct = magic / N * 100;
+      const isPr = factor === N;
+      updateStats(N, magic, pct);
+      moveTurtles(magic, pct, isPr);
+
+      if (audioOn) {
+        if (isPr) { playPrime(N, magic, pct); animateViz(true); }
+        else       { playComposite(N, factor, magic, pct); animateViz(false); }
+      }
+
+      if (!isPr) {
+        comps++;
+        addLog(N, `${factor} &times; ${Math.floor(N / factor)} &nbsp; magic ${magic}`, pct, 'lf');
+      } else {
+        primes++;
+        addLog(N, `prime &nbsp; magic ${magic}`, pct, 'lp');
+      }
+      break;
+    }
+  }
+  N += 2;
+  stepTimer = setTimeout(step, getDelay());
+}
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  if (!running) {
+    running = true;
+    setLive(true);
+    if (audioOn) startDrone();
+    step();
+  }
+});
+document.getElementById('btn-pause').addEventListener('click', () => {
+  running = false;
+  clearTimeout(stepTimer);
+  setLive(false);
+  stopDrone();
+});
+document.getElementById('btn-reset').addEventListener('click', () => {
+  running = false; clearTimeout(stepTimer); setLive(false);
+  stopDrone();
+  N = 3; primes = 0; comps = 0; frameCount = 0;
+  ['sN','sMagic','sPct'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('sPrimes').textContent = '0';
+  document.getElementById('sComps').textContent = '0';
+  logEl.innerHTML = '';
+  stage.querySelectorAll('.tdot').forEach(d => d.remove());
+  spawnFleet();
+});
+
+// Initial fleet spawn
+spawnFleet();
+</script>
+</body>
+</html>
