@@ -2,7 +2,7 @@
 
 A prime number detector that turns math into sound and motion. Every odd integer gets tested using a triangular number (Gaussian) decomposition — primes and composites produce distinct audio signatures, and a fleet of emoji turtles choreograph the results in real time.
 
-**[Live demo →](https://jayzon.github.io/gaussophone)**
+**[Live demo →](https://jayzon.github.io/gaussophone.html)**
 
 ---
 
