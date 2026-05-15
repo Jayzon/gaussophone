@@ -29,7 +29,7 @@ fz        = rightDiff − leftSum          ← zero when magic is found
 factor    = magic + rightPos + leftPos + 1
 ```
 
-`fz == 0` is the detection condition. `factor == N` means prime. This is original research by Jason Ausborn / Nerd Toolbox Research — see the companion paper on [TechRxiv](https://www.techrxiv.org) (Ausborn's Algorithm).
+`fz == 0` is the detection condition. `factor == N` means prime.
 
 ---
 
@@ -85,7 +85,7 @@ Requires Web Audio API support. Works in Chrome, Firefox, Safari, and Edge (all 
 ## Project
 
 Built by **Jason Ausborn** / [Nerd Toolbox Research](https://nerdtoolbox.com)  
-Part of ongoing independent research into triangular number factorization and quantum-adjacent number theory.
+Part of past independent research into triangular number factorization and quantum-adjacent number theory.
 
 ---
 
